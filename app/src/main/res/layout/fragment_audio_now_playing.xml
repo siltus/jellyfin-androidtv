@@ -212,6 +212,13 @@
                         android:layout_height="28sp"
                         android:src="@drawable/ic_user" />
 
+                    <ImageButton
+                        android:id="@+id/deleteBtn"
+                        style="@style/Button.Icon"
+                        android:layout_width="28sp"
+                        android:layout_height="28sp"
+                        android:src="@drawable/ic_trash" />
+
                 </LinearLayout>
             </RelativeLayout>
 

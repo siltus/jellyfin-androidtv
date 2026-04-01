@@ -39,6 +39,7 @@ import org.jellyfin.androidtv.ui.presentation.PositionableListRowPresenter;
 import org.jellyfin.androidtv.util.KeyProcessor;
 import org.jellyfin.androidtv.util.TimeUtils;
 import org.jellyfin.playback.core.PlaybackManager;
+import org.jellyfin.sdk.api.client.ApiClient;
 
 import java.util.List;
 
@@ -54,6 +55,7 @@ public class AudioNowPlayingFragment extends Fragment {
     private ImageButton mShuffleButton;
     private ImageButton mAlbumButton;
     private ImageButton mArtistButton;
+    private ImageButton mDeleteButton;
     private TextView mCounter;
     private NestedScrollView mScrollView;
 
@@ -79,6 +81,7 @@ public class AudioNowPlayingFragment extends Fragment {
     private final Lazy<PlaybackManager> playbackManager = inject(PlaybackManager.class);
     private final Lazy<NavigationRepository> navigationRepository = inject(NavigationRepository.class);
     private final Lazy<KeyProcessor> keyProcessor = inject(KeyProcessor.class);
+    private final Lazy<ApiClient> api = inject(ApiClient.class);
 
     private PopupMenu popupMenu;
 
@@ -194,6 +197,16 @@ public class AudioNowPlayingFragment extends Fragment {
             }
         });
         mArtistButton.setOnFocusChangeListener(mainAreaFocusListener);
+
+        mDeleteButton = binding.deleteBtn;
+        mDeleteButton.setContentDescription(getString(R.string.lbl_delete));
+        mDeleteButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                recycleCurrentItem();
+            }
+        });
+        mDeleteButton.setOnFocusChangeListener(mainAreaFocusListener);
 
         AudioNowPlayingFragmentHelperKt.initializePlayerProgress(binding.playerProgress, playbackManager.getValue());
         binding.playerProgress.setOnFocusChangeListener(mainAreaFocusListener);
@@ -401,5 +414,9 @@ public class AudioNowPlayingFragment extends Fragment {
             popupMenu.dismiss();
             popupMenu = null;
         }
+    }
+
+    private void recycleCurrentItem() {
+        RecycleHelperKt.recycleCurrentItem(this, api.getValue(), mediaManager.getValue(), navigationRepository.getValue());
     }
 }
