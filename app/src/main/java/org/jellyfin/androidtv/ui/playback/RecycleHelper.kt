@@ -11,10 +11,39 @@ import org.jellyfin.androidtv.R
 import org.jellyfin.androidtv.ui.navigation.Destinations
 import org.jellyfin.androidtv.ui.navigation.NavigationRepository
 import org.jellyfin.sdk.api.client.ApiClient
-import org.jellyfin.sdk.api.client.exception.ApiClientException
 import org.jellyfin.sdk.api.client.extensions.post
 import timber.log.Timber
 import java.util.UUID
+
+sealed class RecycleResult {
+	data object Success : RecycleResult()
+	data class Failure(val error: Exception) : RecycleResult()
+}
+
+/**
+ * Core recycle logic extracted for testability.
+ * Advances to next track if available, waits for file handle release, then calls the API.
+ */
+internal suspend fun executeRecycle(
+	apiCall: suspend (UUID) -> Unit,
+	mediaManager: MediaManager,
+	itemId: UUID,
+	hasNext: Boolean,
+	delayMs: Long = 500,
+): RecycleResult {
+	if (hasNext) {
+		mediaManager.nextAudioItem()
+	}
+
+	delay(delayMs)
+
+	return try {
+		apiCall(itemId)
+		RecycleResult.Success
+	} catch (error: Exception) {
+		RecycleResult.Failure(error)
+	}
+}
 
 fun AudioNowPlayingFragment.recycleCurrentItem(
 	api: ApiClient,
@@ -44,35 +73,31 @@ private fun AudioNowPlayingFragment.performRecycle(
 	itemName: String,
 	hasNext: Boolean,
 ) = lifecycleScope.launch {
-	// Advance to next track (or stop) before deleting to release file handle
-	if (hasNext) {
-		mediaManager.nextAudioItem()
-	}
+	val result = executeRecycle(
+		apiCall = { id ->
+			withContext(Dispatchers.IO) {
+				api.post<Unit>(
+					pathTemplate = "/RecycleBin/{itemId}",
+					pathParameters = mapOf("itemId" to id),
+				)
+			}
+		},
+		mediaManager = mediaManager,
+		itemId = itemId,
+		hasNext = hasNext,
+	)
 
-	// Wait for file handle release
-	delay(500)
-
-	try {
-		withContext(Dispatchers.IO) {
-			api.post<Unit>(
-				pathTemplate = "/RecycleBin/{itemId}",
-				pathParameters = mapOf("itemId" to itemId),
-			)
+	when (result) {
+		is RecycleResult.Success -> {
+			Toast.makeText(context, getString(R.string.item_deleted, itemName), Toast.LENGTH_SHORT).show()
+			if (!hasNext) {
+				if (navigationRepository.canGoBack) navigationRepository.goBack()
+				else navigationRepository.navigate(Destinations.home)
+			}
 		}
-	} catch (error: ApiClientException) {
-		Timber.e(error, "Failed to recycle item $itemName (id=$itemId)")
-		Toast.makeText(
-			context,
-			getString(R.string.item_deletion_failed, itemName),
-			Toast.LENGTH_LONG
-		).show()
-		return@launch
-	}
-
-	Toast.makeText(context, getString(R.string.item_deleted, itemName), Toast.LENGTH_SHORT).show()
-
-	if (!hasNext) {
-		if (navigationRepository.canGoBack) navigationRepository.goBack()
-		else navigationRepository.navigate(Destinations.home)
+		is RecycleResult.Failure -> {
+			Timber.e(result.error, "Failed to recycle item $itemName (id=$itemId)")
+			Toast.makeText(context, getString(R.string.item_deletion_failed, itemName), Toast.LENGTH_LONG).show()
+		}
 	}
 }
