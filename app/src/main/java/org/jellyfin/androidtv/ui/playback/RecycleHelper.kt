@@ -101,3 +101,60 @@ private fun AudioNowPlayingFragment.performRecycle(
 		}
 	}
 }
+
+fun AudioNowPlayingFragment.moveCurrentItemToFolder(
+	api: ApiClient,
+	mediaManager: MediaManager,
+	navigationRepository: NavigationRepository,
+) {
+	val item = mediaManager.currentAudioItem ?: return
+	val itemName = item.name ?: "Unknown"
+	val itemId = item.id
+	val hasNext = mediaManager.hasNextAudioItem()
+
+	AlertDialog.Builder(requireContext())
+		.setTitle("2nd Round")
+		.setMessage("Move this item to the 2nd Round folder?")
+		.setPositiveButton("2nd Round") { _, _ ->
+			performMoveToFolder(api, mediaManager, navigationRepository, itemId, itemName, hasNext)
+		}
+		.setNegativeButton(android.R.string.cancel, null)
+		.show()
+}
+
+private fun AudioNowPlayingFragment.performMoveToFolder(
+	api: ApiClient,
+	mediaManager: MediaManager,
+	navigationRepository: NavigationRepository,
+	itemId: UUID,
+	itemName: String,
+	hasNext: Boolean,
+) = lifecycleScope.launch {
+	val result = executeRecycle(
+		apiCall = { id ->
+			withContext(Dispatchers.IO) {
+				api.post<Unit>(
+					pathTemplate = "/MoveToFolder/{itemId}",
+					pathParameters = mapOf("itemId" to id),
+				)
+			}
+		},
+		mediaManager = mediaManager,
+		itemId = itemId,
+		hasNext = hasNext,
+	)
+
+	when (result) {
+		is RecycleResult.Success -> {
+			Toast.makeText(context, "Moved $itemName to 2nd Round", Toast.LENGTH_SHORT).show()
+			if (!hasNext) {
+				if (navigationRepository.canGoBack) navigationRepository.goBack()
+				else navigationRepository.navigate(Destinations.home)
+			}
+		}
+		is RecycleResult.Failure -> {
+			Timber.e(result.error, "Failed to move item $itemName (id=$itemId)")
+			Toast.makeText(context, "Failed to move $itemName", Toast.LENGTH_LONG).show()
+		}
+	}
+}

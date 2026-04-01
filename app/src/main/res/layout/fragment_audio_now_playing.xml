@@ -219,6 +219,13 @@
                         android:layout_height="28sp"
                         android:src="@drawable/ic_trash" />
 
+                    <ImageButton
+                        android:id="@+id/moveToFolderBtn"
+                        style="@style/Button.Icon"
+                        android:layout_width="28sp"
+                        android:layout_height="28sp"
+                        android:src="@drawable/ic_forward_to_inbox" />
+
                 </LinearLayout>
             </RelativeLayout>
 
