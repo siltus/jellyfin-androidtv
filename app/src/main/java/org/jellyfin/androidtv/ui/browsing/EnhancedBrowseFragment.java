@@ -54,6 +54,7 @@ import org.jellyfin.androidtv.util.CoroutineUtils;
 import org.jellyfin.androidtv.util.InfoLayoutHelper;
 import org.jellyfin.androidtv.util.KeyProcessor;
 import org.jellyfin.androidtv.util.MarkdownRenderer;
+import org.jellyfin.androidtv.util.PlaybackHelper;
 import org.jellyfin.androidtv.util.sdk.compat.JavaCompat;
 import org.jellyfin.sdk.api.client.ApiClient;
 import org.jellyfin.sdk.model.api.BaseItemDto;
@@ -82,6 +83,7 @@ public class EnhancedBrowseFragment extends Fragment implements RowLoader, View.
     protected static final int SCHEDULE = 10;
     protected static final int SERIES = 11;
     protected static final int ALBUM_ARTISTS = 12;
+    protected static final int SHUFFLE_ALL = 13;
     protected BaseItemDto mFolder;
     protected BaseItemKind itemType;
     protected boolean showViews = true;
@@ -103,6 +105,7 @@ public class EnhancedBrowseFragment extends Fragment implements RowLoader, View.
     private final Lazy<ApiClient> api = inject(ApiClient.class);
     private final Lazy<ItemLauncher> itemLauncher = inject(ItemLauncher.class);
     private final Lazy<KeyProcessor> keyProcessor = inject(KeyProcessor.class);
+    private final Lazy<PlaybackHelper> playbackHelper = inject(PlaybackHelper.class);
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -297,6 +300,7 @@ public class EnhancedBrowseFragment extends Fragment implements RowLoader, View.
                 break;
 
             case MUSIC_ALBUM:
+                gridRowAdapter.add(new GridButton(SHUFFLE_ALL, getString(R.string.lbl_shuffle_all)));
                 gridRowAdapter.add(new GridButton(ALBUMS, getString(R.string.lbl_albums)));
                 gridRowAdapter.add(new GridButton(ALBUM_ARTISTS, getString(R.string.lbl_album_artists)));
                 gridRowAdapter.add(new GridButton(ARTISTS, getString(R.string.lbl_artists)));
@@ -398,6 +402,10 @@ public class EnhancedBrowseFragment extends Fragment implements RowLoader, View.
 
                             return null;
                         });
+                        break;
+
+                    case SHUFFLE_ALL:
+                        playbackHelper.getValue().retrieveAndPlay(mFolder.getId(), true, requireContext());
                         break;
 
                     case SUGGESTED:

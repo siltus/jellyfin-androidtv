@@ -56,6 +56,7 @@ public class AudioNowPlayingFragment extends Fragment {
     private ImageButton mAlbumButton;
     private ImageButton mArtistButton;
     private ImageButton mDeleteButton;
+    private ImageButton mMoveToFolderButton;
     private TextView mCounter;
     private NestedScrollView mScrollView;
 
@@ -207,6 +208,16 @@ public class AudioNowPlayingFragment extends Fragment {
             }
         });
         mDeleteButton.setOnFocusChangeListener(mainAreaFocusListener);
+
+        mMoveToFolderButton = binding.moveToFolderBtn;
+        mMoveToFolderButton.setContentDescription("2nd Round");
+        mMoveToFolderButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                moveToFolder();
+            }
+        });
+        mMoveToFolderButton.setOnFocusChangeListener(mainAreaFocusListener);
 
         AudioNowPlayingFragmentHelperKt.initializePlayerProgress(binding.playerProgress, playbackManager.getValue());
         binding.playerProgress.setOnFocusChangeListener(mainAreaFocusListener);
@@ -418,5 +429,9 @@ public class AudioNowPlayingFragment extends Fragment {
 
     private void recycleCurrentItem() {
         RecycleHelperKt.recycleCurrentItem(this, api.getValue(), mediaManager.getValue(), navigationRepository.getValue());
+    }
+
+    private void moveToFolder() {
+        RecycleHelperKt.moveCurrentItemToFolder(this, api.getValue(), mediaManager.getValue(), navigationRepository.getValue());
     }
 }

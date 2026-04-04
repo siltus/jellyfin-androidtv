@@ -39,7 +39,7 @@ class SdkPlaybackHelper(
 	private val playbackControllerContainer: PlaybackControllerContainer,
 ) : PlaybackHelper {
 	companion object {
-		const val ITEM_QUERY_LIMIT = 150
+		const val ITEM_QUERY_LIMIT = 500
 	}
 
 	override fun getItemsToPlay(
@@ -193,6 +193,21 @@ class SdkPlaybackHelper(
 					parentId = mainItem.id,
 					isMissing = false,
 					sortBy = if (shuffle) listOf(ItemSortBy.RANDOM) else null,
+					recursive = true,
+					limit = ITEM_QUERY_LIMIT,
+					fields = ItemRepository.itemFields
+				)
+
+				response.items
+			}
+
+			BaseItemKind.COLLECTION_FOLDER -> {
+				val response by api.itemsApi.getItems(
+					parentId = mainItem.id,
+					isMissing = false,
+					mediaTypes = listOf(MediaType.AUDIO),
+					filters = listOf(ItemFilter.IS_NOT_FOLDER),
+					sortBy = if (shuffle) listOf(ItemSortBy.RANDOM) else listOf(ItemSortBy.SORT_NAME),
 					recursive = true,
 					limit = ITEM_QUERY_LIMIT,
 					fields = ItemRepository.itemFields
