@@ -169,6 +169,14 @@ class SdkPlaybackHelper(
 			}
 
 			BaseItemKind.MUSIC_ARTIST -> {
+				// Container MusicArtist (a directory directly under a music-type
+				// library whose children are sub-folders rather than albums, e.g.
+				// "Festivals 2026" containing per-artist sub-folders) has childCount=0
+				// and zero tracks credited to it. Querying by artistIds returns
+				// nothing, which surfaces as "Unable to find a valid media source to
+				// play". Fall back to a recursive parentId scan so Shuffle / Play
+				// finds every audio descendant.
+				val isContainerArtist = mainItem.isContainerMusicArtist()
 				val response by api.itemsApi.getItems(
 					isMissing = false,
 					mediaTypes = listOf(MediaType.AUDIO),
@@ -182,7 +190,8 @@ class SdkPlaybackHelper(
 					recursive = true,
 					limit = ITEM_QUERY_LIMIT,
 					fields = ItemRepository.itemFields,
-					artistIds = listOf(mainItem.id)
+					artistIds = if (isContainerArtist) null else listOf(mainItem.id),
+					parentId = if (isContainerArtist) mainItem.id else null
 				)
 
 				response.items

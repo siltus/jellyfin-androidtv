@@ -18,6 +18,7 @@ import org.jellyfin.androidtv.ui.presentation.MutableObjectAdapter;
 import org.jellyfin.androidtv.util.PlaybackHelper;
 import org.jellyfin.androidtv.util.Utils;
 import org.jellyfin.androidtv.util.apiclient.Response;
+import org.jellyfin.androidtv.util.sdk.BaseItemExtensionsKt;
 import org.jellyfin.androidtv.util.sdk.compat.JavaCompat;
 import org.jellyfin.sdk.model.api.BaseItemDto;
 import org.jellyfin.sdk.model.api.BaseItemKind;
@@ -83,7 +84,17 @@ public class ItemLauncher {
                         launchUserView(baseItem);
                         return;
                     case SERIES:
+                        navigationRepository.getValue().navigate(Destinations.INSTANCE.itemDetails(baseItem.getId()));
+                        return;
                     case MUSIC_ARTIST:
+                        // For MusicArtist items that are actually filesystem container
+                        // directories (Jellyfin classifies any directory directly under
+                        // a music-type library as a MusicArtist; a directory whose
+                        // children are other sub-folders rather than albums has
+                        // ChildCount=0 and an empty itemDetails page), break out of the
+                        // type switch so we fall through to the generic IsFolder branch
+                        // below and drill into the filesystem hierarchy instead.
+                        if (BaseItemExtensionsKt.isContainerMusicArtist(baseItem)) break;
                         navigationRepository.getValue().navigate(Destinations.INSTANCE.itemDetails(baseItem.getId()));
                         return;
 
