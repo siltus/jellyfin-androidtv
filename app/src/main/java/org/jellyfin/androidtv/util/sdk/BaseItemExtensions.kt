@@ -155,3 +155,24 @@ fun BaseItemDto.buildChapterItems(): List<ChapterItemInfo> {
 		)
 	}.orEmpty()
 }
+
+/**
+ * Returns true when this item is a MusicArtist that is actually a filesystem
+ * container directory rather than a real artist.
+ *
+ * Jellyfin classifies any directory directly under a music-type library as a
+ * MusicArtist. If the directory contains album sub-folders the resulting
+ * MusicArtist has [childCount] > 0 and its tracks are correctly credited to it.
+ * If the directory contains other sub-folders instead (e.g. a "Festivals 2026"
+ * directory containing per-artist sub-folders) the MusicArtist has
+ * [childCount] == 0 and querying audio by `artistIds` returns nothing — the
+ * tracks underneath are credited to the inner artists, not to this container.
+ *
+ * Code paths that route on item type (item-launch, shuffle/play queue building,
+ * etc.) should treat container artists as folders to drill into rather than as
+ * artists to open in the artist details / tracks view, otherwise the user sees
+ * an empty artist page or "Unable to find a valid media source to play".
+ */
+fun BaseItemDto.isContainerMusicArtist() = type == BaseItemKind.MUSIC_ARTIST
+	&& isFolder == true
+	&& (childCount == null || childCount == 0)
